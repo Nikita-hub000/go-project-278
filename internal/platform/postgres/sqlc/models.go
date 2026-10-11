@@ -5,12 +5,12 @@
 package sqlc
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
 type Link struct {
 	ID          int64
 	OriginalUrl string
 	ShortName   string
-	CreatedAt   pgtype.Timestamptz
+	CreatedAt   time.Time
 }

@@ -14,6 +14,6 @@ SELECT 1
 `
 
 func (q *Queries) CheckConnection(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, checkConnection)
+	_, err := q.db.ExecContext(ctx, checkConnection)
 	return err
 }
