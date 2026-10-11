@@ -1,0 +1,1 @@
+-- Placeholder: define the orders schema before adding executable migration SQL.

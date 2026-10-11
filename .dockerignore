@@ -1,0 +1,10 @@
+.git
+.idea
+.env
+.env.*
+tmp
+bin
+api
+links
+coverage.out
+*.test
