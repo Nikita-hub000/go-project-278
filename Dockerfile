@@ -1,5 +1,5 @@
 # Build backend
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.27.2-alpine AS backend-builder
 RUN apk add --no-cache git
 WORKDIR /build/code
 
