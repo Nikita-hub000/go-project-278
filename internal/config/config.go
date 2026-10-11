@@ -5,8 +5,9 @@ import (
 )
 
 type Config struct {
-	PORT   string
-	SENTRY string
+	PORT        string
+	SENTRY      string
+	DatabaseURL string
 }
 
 func Load() Config {
@@ -14,10 +15,10 @@ func Load() Config {
 	sentryDSN := os.Getenv("SENTRY_DSN")
 
 	if port == "" {
-		port = ":8080"
+		port = "8080"
 	}
 	if sentryDSN != "" {
 		sentryDSN = ""
 	}
-	return Config{PORT: ":" + port, SENTRY: sentryDSN}
+	return Config{PORT: ":" + port, SENTRY: sentryDSN, DatabaseURL: os.Getenv("DATABASE_URL")}
 }

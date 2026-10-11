@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
 
 	"links/internal/config"
 	"links/internal/middleware"
+	"links/internal/platform/postgres"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
@@ -14,9 +16,17 @@ import (
 
 func main() {
 	cfg := config.Load()
-	err := sentry.Init(sentry.ClientOptions{
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	db, err := postgres.Open(ctx, cfg.DatabaseURL)
+	cancel()
+	if err != nil {
+		log.Fatalf("database initialization: %v", err)
+	}
+	defer db.Close()
+
+	err = sentry.Init(sentry.ClientOptions{
 		Dsn:                  cfg.SENTRY,
-		DataCollection:      &sentry.DataCollection{},
+		DataCollection:       &sentry.DataCollection{},
 		EnableTracing:        false,
 		TracesSampleRate:     0,
 		DisableClientReports: true,

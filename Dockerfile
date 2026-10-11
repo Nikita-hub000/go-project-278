@@ -10,21 +10,27 @@ go mod download
 # Версия goose берётся из go.mod, где он объявлен директивой tool, а не из
 # `@latest`: иначе образ соберётся с другой версией, чем у вас локально.
 RUN --mount=type=cache,target=/go/pkg/mod \
-go build -o /build/goose github.com/pressly/goose/v3/cmd/goose
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build \
+    -tags='no_clickhouse no_libsql no_mssql no_mysql no_sqlite3 no_vertica no_ydb' \
+    -o /build/goose github.com/pressly/goose/v3/cmd/goose
 
 COPY . .
 
-RUN --mount=type=cache,target=/root/.cache/go-build \
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /build/app .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /build/app ./cmd/api
 
 # 3) Runtime
 FROM alpine:3.22
+
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
 
-COPY --from=backend-builder build/code/db/migrations /app/db/migrations
+COPY --from=backend-builder /build/code/migrations /app/db/migrations
 COPY --from=backend-builder /build/goose /usr/local/bin/goose
 
 COPY bin/run.sh /app/bin/run.sh

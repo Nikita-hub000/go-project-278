@@ -39,13 +39,46 @@ curl http://localhost:8080/ping
 Air загружает `.env`; при обычном `go run` переменные нужно передать через окружение.
 Локальный `.env` исключён из Git и Docker build context.
 
-Запуск в Docker:
+Запуск API и PostgreSQL через Docker Compose:
 
 ```bash
 cp .env.example .env
-docker build -t links-api .
-docker run --rm --env-file .env -p 8080:8080 links-api
+# Если .env уже настроен, не перезаписывайте его командой выше.
+docker compose up --build -d
+docker compose logs api
 ```
+
+В `.env` задаются `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` и
+`DATABASE_URL`. Пользователь, пароль и имя базы в URL должны совпадать с
+параметрами PostgreSQL. В контейнере адрес базы — `db:5432`;
+из GoLand или другого клиента на компьютере — `localhost:5432`.
+Параметры `POSTGRES_*` используются для первоначального создания базы в пустом томе;
+изменение `.env` не меняет пароль уже существующего пользователя.
+
+Для запуска только базы выполните `docker compose up -d db`.
+Проверить подключение можно командой:
+
+```bash
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1"'
+```
+
+Данные сохраняются в томе `postgres_data`. Команда `docker compose down`
+останавливает контейнеры с сохранением данных; добавление `-v` удаляет том.
+API запускается после успешной проверки готовности PostgreSQL.
+Скрипт `bin/run.sh` применяет SQL-миграции из `migrations` перед запуском API;
+если SQL-файлов нет, этот шаг пропускается. После добавления миграций пересоберите образ.
+Go API создаёт пул PostgreSQL из `DATABASE_URL` и проверяет подключение при запуске
+с тайм-аутом 5 секунд. Без доступной базы API завершает запуск с ошибкой.
+При запуске Go на компьютере используйте в URL `localhost:5432` вместо `db:5432`;
+`go run` не загружает `.env` автоматически.
+
+`migrations/001_create_links.sql` создаёт таблицу `links` с уникальным `short_name`
+и автоматически заполняемым `created_at`. `short_url` в базе не хранится.
+Настройки sqlc находятся в `sqlc.yaml`; генерация кода выполняется командой
+`make generate` (sqlc v1.31.1). Исходные SQL-запросы находятся в
+`internal/platform/postgres/queries`, сгенерированный код — в
+`internal/platform/postgres/sqlc`. Пока добавлен только запрос проверки соединения;
+CRUD ссылок ещё не реализован.
 
 ## Структура
 
@@ -54,11 +87,10 @@ docker run --rm --env-file .env -p 8080:8080 links-api
 - `internal/user` — каркас обработчиков, сервиса, репозитория, моделей и DTO пользователей.
 - `internal/order` — каркас обработчиков, сервиса, репозитория и моделей заказов.
 - `internal/middleware` — логирование запросов и место для авторизации.
-- `internal/platform/postgres` — место для подключения PostgreSQL.
-- `migrations` — заготовки миграций пользователей и заказов.
+- `internal/platform/postgres` — подключение PostgreSQL и код sqlc.
+- `migrations` — миграции goose, включая создание таблицы ссылок.
 
-Пакеты пользователей, заказов, PostgreSQL, авторизация и SQL-миграции пока
-представлены заготовками: схема данных и бизнес-правила ещё не определены.
+Пакеты пользователей, заказов и авторизация пока представлены заготовками.
 Рабочий маршрут API — `GET /ping`.
 
 ## Проверки качества
