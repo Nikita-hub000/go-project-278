@@ -16,7 +16,7 @@ func main() {
 	cfg := config.Load()
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:                  cfg.SENTRY,
-		SendDefaultPII:       true,
+		DataCollection:      &sentry.DataCollection{},
 		EnableTracing:        false,
 		TracesSampleRate:     0,
 		DisableClientReports: true,
