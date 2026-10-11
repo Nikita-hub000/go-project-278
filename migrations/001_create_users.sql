@@ -1,1 +1,0 @@
--- Placeholder: define the users schema before adding executable migration SQL.
