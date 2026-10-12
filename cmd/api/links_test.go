@@ -225,6 +225,33 @@ func TestLinksIntegration(t *testing.T) {
 			t.Fatalf("list not ordered by ID: %+v", list.Links)
 		}
 	}
+	for _, tc := range []struct {
+		name, query string
+		start, end  int
+	}{
+		{"first", "%5B1%2C1%5D", 0, 1},
+		{"middle", "%5B2%2C3%5D", 1, 3},
+		{"past end", "%5B5%2C10%5D", 4, 4},
+	} {
+		t.Run("pagination/"+tc.name, func(t *testing.T) {
+			response := apiRequest(t, router, http.MethodGet, "/api/links?range="+tc.query, "", http.StatusOK)
+			var page struct {
+				Links []links.Link `json:"links"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+				t.Fatal(err)
+			}
+			want := list.Links[tc.start:tc.end]
+			if len(page.Links) != len(want) {
+				t.Fatalf("page length = %d, want %d", len(page.Links), len(want))
+			}
+			for i := range want {
+				if page.Links[i] != want[i] {
+					t.Errorf("page[%d] = %+v, want %+v", i, page.Links[i], want[i])
+				}
+			}
+		})
+	}
 
 	updated := responseLink(t, apiRequest(t, router, http.MethodPut, path,
 		`{"original_url":"https://example.com/updated","short_name":"test-updated"}`, http.StatusOK))

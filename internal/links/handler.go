@@ -2,6 +2,7 @@ package links
 
 import (
 	"database/sql"
+	"fmt"
 	"links/internal/platform/postgres/sqlc"
 	"net/http"
 	"strconv"
@@ -38,10 +39,14 @@ func PostLink(db *sql.DB) gin.HandlerFunc {
 
 func GetAllLinks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		links, err := GetAllLinksHandler(c.Request.Context(), db)
+		pagination := c.Query("range")
+		links, err := GetAllLinksHandler(c.Request.Context(), db, pagination)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve links"})
 			return
+		}
+		if pagination != "" {
+			c.Header("Content-Range", fmt.Sprintf("links %s/%d", pagination, len(links)))
 		}
 		c.JSON(http.StatusOK, gin.H{"links": links})
 	}

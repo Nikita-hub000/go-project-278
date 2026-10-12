@@ -21,3 +21,8 @@ type GenerateShortURLData struct {
 	ShortURL  string
 	ShortName string
 }
+
+type GetAllLinksPagination struct {
+	Limit  int32
+	Offset int32
+}

@@ -3,6 +3,7 @@ package links
 import (
 	"context"
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"links/internal/config"
 
@@ -37,4 +38,22 @@ func GenerateShortUrl(ctx context.Context, db *sql.DB, shortName string) (*Gener
 		return data, nil
 	}
 	return data, nil
+}
+
+func parseQueryPaginationToInt(queryStr string) (*GetAllLinksPagination, error) {
+	var values []int32
+	if err := json.Unmarshal([]byte(queryStr), &values); err != nil {
+		return nil, err
+	}
+	if len(values) != 2 {
+		return nil, errors.New("two nums expected")
+	}
+
+	offset := values[0] - 1
+	limit := values[1] - values[0] + 1
+
+	if offset < 0 || limit < 0 {
+		return nil, errors.New("invalid offset or limit")
+	}
+	return &GetAllLinksPagination{Limit: values[1] - values[0] + 1, Offset: values[0] - 1}, nil
 }

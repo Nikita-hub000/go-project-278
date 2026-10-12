@@ -1,7 +1,8 @@
 -- name: GetAllLinks :many
 SELECT id, original_url, short_name, short_url
 FROM links
-ORDER BY id;
+ORDER BY id
+LIMIT $1 OFFSET $2;
 
 
 -- name: GetLinkByID :one

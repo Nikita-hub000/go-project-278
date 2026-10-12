@@ -40,10 +40,20 @@ func GetLinkByShortURL(ctx context.Context, db *sql.DB, shortURL string) (*Link,
 	return &Link{ID: link.ID, ShortURL: link.ShortUrl, ShortName: link.ShortName, OriginalURL: link.OriginalUrl}, nil
 }
 
-func GetAllLinksHandler(ctx context.Context, db *sql.DB) ([]Link, error) {
+func GetAllLinksHandler(ctx context.Context, db *sql.DB, pagination string) ([]Link, error) {
 	q := sqlc.New(db)
 
-	rows, err := q.GetAllLinks(ctx)
+	params := sqlc.GetAllLinksParams{Limit: 100, Offset: 0}
+	if pagination != "" {
+		parsed, err := parseQueryPaginationToInt(pagination)
+		if err != nil {
+			return nil, err
+		}
+		params.Limit = parsed.Limit
+		params.Offset = parsed.Offset
+	}
+
+	rows, err := q.GetAllLinks(ctx, params)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -56,7 +66,6 @@ func GetAllLinksHandler(ctx context.Context, db *sql.DB) ([]Link, error) {
 		links = append(links, Link{ID: row.ID, ShortName: row.ShortName, ShortURL: row.ShortUrl, OriginalURL: row.OriginalUrl})
 	}
 	return links, nil
-
 }
 
 func CreateLink(ctx context.Context, db *sql.DB, link *Link) (*Link, error) {

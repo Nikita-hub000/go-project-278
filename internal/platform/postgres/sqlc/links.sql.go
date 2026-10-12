@@ -52,7 +52,13 @@ const getAllLinks = `-- name: GetAllLinks :many
 SELECT id, original_url, short_name, short_url
 FROM links
 ORDER BY id
+LIMIT $1 OFFSET $2
 `
+
+type GetAllLinksParams struct {
+	Limit  int32
+	Offset int32
+}
 
 type GetAllLinksRow struct {
 	ID          int64
@@ -61,8 +67,8 @@ type GetAllLinksRow struct {
 	ShortUrl    string
 }
 
-func (q *Queries) GetAllLinks(ctx context.Context) ([]GetAllLinksRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllLinks)
+func (q *Queries) GetAllLinks(ctx context.Context, arg GetAllLinksParams) ([]GetAllLinksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllLinks, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
