@@ -20,6 +20,7 @@ services:
     build: .
     environment:
       PORT: "8080"
+      HOST_URL: ${HOST_URL:?Set HOST_URL in .env}
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
