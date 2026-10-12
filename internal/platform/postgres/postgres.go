@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"links/internal/platform/postgres/sqlc"
-
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -20,8 +18,6 @@ func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create postgres pool: %w", err)
 	}
-	if err := sqlc.New(db).CheckConnection(ctx); err != nil {
-		return nil, errors.Join(fmt.Errorf("connect postgres: %w", err), db.Close())
-	}
+
 	return db, nil
 }

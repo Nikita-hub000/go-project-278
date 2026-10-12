@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"time"
 
 	"links/internal/config"
+	"links/internal/links"
 	"links/internal/middleware"
 	"links/internal/platform/postgres"
 
@@ -39,20 +41,25 @@ func main() {
 		log.Fatalf("sentry.Init: %s", err)
 	}
 	defer sentry.Flush(2 * time.Second)
-	if err := setupRouter().Run(cfg.PORT); err != nil {
+	if err := setupRouter(db).Run(cfg.PORT); err != nil {
 		log.Fatalf("start server: %v", err)
 	}
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(db *sql.DB) *gin.Engine {
 	router := gin.New()
 	router.Use(middleware.Logger(), gin.Recovery())
 
 	router.GET("/ping", func(c *gin.Context) {
-		//sentry.CaptureMessage("Error created on purpose to send it to Bugsink")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
+
+	router.GET("/api/links", links.GetAllLinks(db))
+	router.POST("/api/links", links.PostLink(db))
+	router.GET("/api/links/:id", links.GetLinkByID(db))
+	router.PUT("/api/links/:id", links.UpdateLink(db))
+	router.DELETE("/api/links/:id", links.DeleteLink(db))
 	return router
 }

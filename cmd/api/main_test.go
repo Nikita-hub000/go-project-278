@@ -8,7 +8,7 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	router := setupRouter()
+	router := setupRouter(nil)
 	request := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	response := httptest.NewRecorder()
 
