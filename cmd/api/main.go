@@ -48,7 +48,9 @@ func main() {
 
 func setupRouter(db *sql.DB) *gin.Engine {
 	router := gin.New()
-	router.Use(middleware.Logger(), gin.Recovery())
+	cors := middleware.CORSMiddleware()
+
+	router.Use(middleware.Logger(), gin.Recovery(), cors)
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

@@ -22,6 +22,34 @@ cd go-project-278
 
 ## Использование
 
+### Общий запуск фронтенда и API
+
+Нужны запущенный Docker Desktop, настроенный `.env` и Node.js из `.nvmrc`.
+Для управления Node.js используется nvm:
+
+```bash
+nvm install
+nvm use
+node -v
+npm ci
+npm start
+```
+
+`npm start` сначала запускает PostgreSQL и ждёт его готовности, затем через
+`concurrently` запускает API в Docker Compose с пересборкой и фронтенд Hexlet
+командой `npx start-hexlet-url-shortener-frontend`.
+
+- Фронтенд: http://localhost:5173/
+- API: http://localhost:8080/api/links
+- Проверка API: `curl http://localhost:8080/ping`
+
+`Ctrl+C` останавливает фронтенд и API. PostgreSQL остаётся в фоне;
+остановить его можно командой `docker compose stop db`. Данные сохраняются.
+Для отдельного запуска фронтенда есть `npm run dev:frontend`.
+Настройка CORS остаётся отдельным шагом; этот запуск её не добавляет.
+
+### Запуск только API
+
 <!-- Добавьте примеры запуска и запись asciinema — именно это смотрит работодатель -->
 
 ```bash

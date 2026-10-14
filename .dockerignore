@@ -7,3 +7,5 @@ api
 links
 coverage.out
 *.test
+node_modules
+npm-debug.log*

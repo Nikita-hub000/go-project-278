@@ -1,0 +1,19 @@
+{
+  "name": "go-project-278",
+  "private": true,
+  "scripts": {
+    "prestart": "docker compose up -d --wait db",
+    "start": "concurrently --kill-others --names api,frontend \"npm:dev:api\" \"npm:dev:frontend\"",
+    "dev:api": "docker compose up --build --no-deps api",
+    "dev:frontend": "npx start-hexlet-url-shortener-frontend"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@hexlet/project-url-shortener-frontend": "^1.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
