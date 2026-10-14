@@ -3,7 +3,6 @@ package links
 import (
 	"database/sql"
 	"fmt"
-	"links/internal/platform/postgres/sqlc"
 	"net/http"
 	"strconv"
 
@@ -13,23 +12,13 @@ import (
 func PostLink(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		request := CreateLinkRequest{}
-		if err := c.ShouldBindJSON(&request); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindLinkRequest(c, &request) {
 			return
 		}
 
-		data, err := GenerateShortUrl(c.Request.Context(), db, request.ShortName)
-
+		link, err := CreateShortLink(c.Request.Context(), db, request)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		link, err := CreateLink(c.Request.Context(),
-			db,
-			&Link{ShortName: data.ShortName, OriginalURL: request.OriginalURL, ShortURL: data.ShortURL})
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create link"})
+			writeLinkError(c, err, "failed to create link")
 			return
 		}
 
@@ -84,27 +73,14 @@ func UpdateLink(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 		request := UpdateLinkRequest{}
-
-		data, err := GenerateShortUrl(c.Request.Context(), db, request.ShortName)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !bindLinkRequest(c, &request) {
 			return
 		}
 
-		if err := c.ShouldBindJSON(&request); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		link, err := UpdateLinkHandler(c.Request.Context(), db, sqlc.UpdateLinkParams{
-			OriginalUrl: request.OriginalURL,
-			ShortName:   data.ShortName,
-			ID:          id,
-			ShortUrl:    data.ShortURL,
-		})
+		link, err := UpdateShortLink(c.Request.Context(), db, id, request)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			writeLinkError(c, err, "failed to update link")
 			return
 		}
 

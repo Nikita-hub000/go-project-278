@@ -10,6 +10,20 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: links_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d links_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -18,6 +32,8 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
       - name: Test with race detector
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test_password@localhost:5432/links_test?sslmode=disable
         run: go test -race ./...
       - name: Build
         run: go build -o bin/api ./cmd/api

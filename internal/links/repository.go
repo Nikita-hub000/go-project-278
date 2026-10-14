@@ -74,7 +74,7 @@ func CreateLink(ctx context.Context, db *sql.DB, link *Link) (*Link, error) {
 	row, err := q.AddLink(ctx, sqlc.AddLinkParams{ShortUrl: link.ShortURL, OriginalUrl: link.OriginalURL, ShortName: link.ShortName})
 
 	if err != nil {
-		return nil, err
+		return nil, linkWriteError(err)
 	}
 
 	return &Link{
@@ -90,7 +90,7 @@ func UpdateLinkHandler(ctx context.Context, db *sql.DB, params sqlc.UpdateLinkPa
 	link, err := q.UpdateLink(ctx, sqlc.UpdateLinkParams{ID: params.ID, ShortName: params.ShortName, OriginalUrl: params.OriginalUrl, ShortUrl: params.ShortUrl})
 
 	if err != nil {
-		return nil, err
+		return nil, linkWriteError(err)
 	}
 
 	return &Link{

@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	router := setupRouter(nil)
+	router := NewRouter(nil)
 	request := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	response := httptest.NewRecorder()
 
@@ -31,7 +31,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestCORSPreflight(t *testing.T) {
-	router := setupRouter(nil)
+	router := NewRouter(nil)
 	request := httptest.NewRequest(http.MethodOptions, "/api/links", nil)
 	request.Header.Set("Origin", "http://localhost:5173")
 	request.Header.Set("Access-Control-Request-Method", http.MethodPost)

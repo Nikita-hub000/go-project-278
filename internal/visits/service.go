@@ -54,7 +54,7 @@ func parseQueryPaginationToInt(queryStr string) (*GetAllVisitsPagination, error)
 	offset := values[0]
 	limit := values[1] - values[0] + 1
 
-	if offset < 0 || limit < 0 {
+	if offset < 0 || values[1] < values[0] || limit <= 0 {
 		return nil, errors.New("invalid offset or limit")
 	}
 	return &GetAllVisitsPagination{Limit: values[1] - values[0] + 1, Offset: values[0]}, nil

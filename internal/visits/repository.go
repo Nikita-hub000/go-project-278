@@ -28,11 +28,11 @@ func GetAllVisitsHandler(ctx context.Context, db *sql.DB, pagination string, sor
 		}
 		return nil, err
 	}
-	var links []Visit
+	visits := make([]Visit, 0, len(rows))
 	for _, row := range rows {
-		links = append(links, Visit{ID: row.ID, LinkID: row.LinkID, IP: row.Ip, Status: row.Status, UserAgent: row.UserAgent, CreatedAt: row.CreatedAt})
+		visits = append(visits, Visit{ID: row.ID, LinkID: row.LinkID, IP: row.Ip, Status: row.Status, UserAgent: row.UserAgent, CreatedAt: row.CreatedAt})
 	}
-	return links, nil
+	return visits, nil
 }
 
 func CreateVisit(ctx context.Context, db *sql.DB, code string, ip string, userAgent string) (string, error) {

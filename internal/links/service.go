@@ -8,6 +8,7 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"links/internal/config"
+	"links/internal/platform/postgres/sqlc"
 	"strings"
 )
 
@@ -17,45 +18,65 @@ const maxShortNameGenerationAttempts = 5
 func GenerateShortUrl(ctx context.Context, db *sql.DB, shortName string) (*GenerateShortURLData, error) {
 	hostURL := config.Load().HostURL
 	if shortName == "" {
-		return generateUniqueShortName(ctx, db, hostURL, "")
+		return generateUniqueShortName(ctx, db, hostURL)
 	}
 	shortURL := hostURL + "/r/" + shortName
 
-	link, err := GetLinkByShortURL(ctx, db, shortURL)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if link != nil {
-		return generateUniqueShortName(ctx, db, hostURL, shortName)
-	}
 	return &GenerateShortURLData{ShortName: shortName, ShortURL: shortURL}, nil
 }
 
-func generateUniqueShortName(ctx context.Context, db *sql.DB, hostURL, prefix string) (*GenerateShortURLData, error) {
+func generateUniqueShortName(ctx context.Context, db *sql.DB, hostURL string) (*GenerateShortURLData, error) {
 	for range maxShortNameGenerationAttempts {
 		suffix, err := generateRandomShortName()
 		if err != nil {
 			return nil, err
 		}
 		generatedShortName := suffix
-		if prefix != "" {
-			generatedShortName = prefix + "-" + suffix
-		}
 		shortURL := hostURL + "/r/" + generatedShortName
-		link, err := GetLinkByShortURL(ctx, db, shortURL)
-		if err != nil {
-			return nil, err
-		}
-		if link == nil {
+		_, err = sqlc.New(db).GetLinkByShortName(ctx, generatedShortName)
+		if errors.Is(err, sql.ErrNoRows) {
 			return &GenerateShortURLData{
 				ShortName: generatedShortName,
 				ShortURL:  shortURL,
 			}, nil
 		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	return nil, errors.New("could not generate a unique short name")
+}
+
+func CreateShortLink(ctx context.Context, db *sql.DB, request CreateLinkRequest) (*Link, error) {
+	for range maxShortNameGenerationAttempts {
+		data, err := GenerateShortUrl(ctx, db, request.ShortName)
+		if err != nil {
+			return nil, err
+		}
+		link, err := CreateLink(ctx, db, &Link{
+			OriginalURL: request.OriginalURL, ShortName: data.ShortName, ShortURL: data.ShortURL,
+		})
+		if request.ShortName != "" || !errors.Is(err, ErrShortNameInUse) {
+			return link, err
+		}
+	}
+	return nil, errors.New("could not save a generated short name")
+}
+
+func UpdateShortLink(ctx context.Context, db *sql.DB, id int64, request UpdateLinkRequest) (*Link, error) {
+	for range maxShortNameGenerationAttempts {
+		data, err := GenerateShortUrl(ctx, db, request.ShortName)
+		if err != nil {
+			return nil, err
+		}
+		link, err := UpdateLinkHandler(ctx, db, sqlc.UpdateLinkParams{
+			ID: id, OriginalUrl: request.OriginalURL, ShortName: data.ShortName, ShortUrl: data.ShortURL,
+		})
+		if request.ShortName != "" || !errors.Is(err, ErrShortNameInUse) {
+			return link, err
+		}
+	}
+	return nil, errors.New("could not save a generated short name")
 }
 
 func generateRandomShortName() (string, error) {

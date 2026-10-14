@@ -2,12 +2,12 @@ package links
 
 type CreateLinkRequest struct {
 	OriginalURL string `json:"original_url" binding:"required,url"`
-	ShortName   string `json:"short_name"`
+	ShortName   string `json:"short_name" binding:"omitempty,min=3,max=32"`
 }
 
 type UpdateLinkRequest struct {
 	OriginalURL string `json:"original_url" binding:"required,url"`
-	ShortName   string `json:"short_name"`
+	ShortName   string `json:"short_name" binding:"omitempty,min=3,max=32"`
 }
 
 type Link struct {

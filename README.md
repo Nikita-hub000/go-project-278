@@ -133,8 +133,10 @@ golangci-lint run ./...
 go build -o bin/api ./cmd/api
 ```
 
-Тест `/ping` использует `testing` и `net/http/httptest` и проверяет статус 200,
-тип содержимого и JSON-ответ без запуска HTTP-сервера.
+Тесты HTTP-валидации находятся в `internal/links`, тесты роутера — в
+`internal/api`, интеграционные сценарии с PostgreSQL — в `tests/integration`.
+Для полного прогона задайте `TEST_DATABASE_URL`; в CI тестовая БД запускается
+автоматически. Команды и устройство тестов описаны в [tests/README.md](tests/README.md).
 Правила линтера заданы в `.golangci.yml` и одинаковы локально и в CI.
 
 Workflow `CI` выполняет тесты с детектором гонок, линтер и сборку при каждом
