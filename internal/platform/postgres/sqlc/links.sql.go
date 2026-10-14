@@ -51,13 +51,18 @@ func (q *Queries) DeleteLink(ctx context.Context, id int64) (int64, error) {
 const getAllLinks = `-- name: GetAllLinks :many
 SELECT id, original_url, short_name, short_url
 FROM links
-ORDER BY id
-LIMIT $1 OFFSET $2
+ORDER BY CASE WHEN $1::text = 'id ASC' THEN id END ASC,
+         CASE WHEN $1::text = 'id DESC' THEN id END DESC,
+         CASE WHEN $1::text = 'created_at ASC' THEN created_at END ASC,
+         CASE WHEN $1::text = 'created_at DESC' THEN created_at END DESC,
+         id ASC
+LIMIT $3 OFFSET $2
 `
 
 type GetAllLinksParams struct {
-	Limit  int32
-	Offset int32
+	SortRule   string
+	PageOffset int32
+	PageLimit  int32
 }
 
 type GetAllLinksRow struct {
@@ -68,7 +73,7 @@ type GetAllLinksRow struct {
 }
 
 func (q *Queries) GetAllLinks(ctx context.Context, arg GetAllLinksParams) ([]GetAllLinksRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllLinks, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getAllLinks, arg.SortRule, arg.PageOffset, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +125,31 @@ func (q *Queries) GetLinkByID(ctx context.Context, id int64) (GetLinkByIDRow, er
 	return i, err
 }
 
+const getLinkByShortName = `-- name: GetLinkByShortName :one
+SELECT id, original_url, short_name, short_url
+FROM links
+WHERE short_name = $1
+`
+
+type GetLinkByShortNameRow struct {
+	ID          int64
+	OriginalUrl string
+	ShortName   string
+	ShortUrl    string
+}
+
+func (q *Queries) GetLinkByShortName(ctx context.Context, shortName string) (GetLinkByShortNameRow, error) {
+	row := q.db.QueryRowContext(ctx, getLinkByShortName, shortName)
+	var i GetLinkByShortNameRow
+	err := row.Scan(
+		&i.ID,
+		&i.OriginalUrl,
+		&i.ShortName,
+		&i.ShortUrl,
+	)
+	return i, err
+}
+
 const getLinkByShortUrl = `-- name: GetLinkByShortUrl :one
 SELECT id, original_url, short_name, short_url
 FROM links
@@ -148,19 +178,26 @@ func (q *Queries) GetLinkByShortUrl(ctx context.Context, shortUrl string) (GetLi
 const updateLink = `-- name: UpdateLink :one
 UPDATE links
 SET original_url = $1,
-    short_name   = $2
-WHERE id = $3
+    short_name   = $2,
+    short_url    = $3
+WHERE id = $4
 RETURNING id, original_url, short_name, short_url, created_at
 `
 
 type UpdateLinkParams struct {
 	OriginalUrl string
 	ShortName   string
+	ShortUrl    string
 	ID          int64
 }
 
 func (q *Queries) UpdateLink(ctx context.Context, arg UpdateLinkParams) (Link, error) {
-	row := q.db.QueryRowContext(ctx, updateLink, arg.OriginalUrl, arg.ShortName, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateLink,
+		arg.OriginalUrl,
+		arg.ShortName,
+		arg.ShortUrl,
+		arg.ID,
+	)
 	var i Link
 	err := row.Scan(
 		&i.ID,

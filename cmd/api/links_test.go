@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,6 +19,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 )
+
+var shortNameTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{8}$`)
 
 func apiRequest(t *testing.T, router http.Handler, method, path, body string, wantStatus int) *httptest.ResponseRecorder {
 	t.Helper()
@@ -178,10 +181,8 @@ func TestLinksIntegration(t *testing.T) {
 	router := setupRouter(db)
 
 	empty := apiRequest(t, router, http.MethodGet, "/api/links", "", http.StatusOK)
-	var list struct {
-		Links []links.Link `json:"links"`
-	}
-	if err := json.Unmarshal(empty.Body.Bytes(), &list); err != nil || len(list.Links) != 0 {
+	var list []links.Link
+	if err := json.Unmarshal(empty.Body.Bytes(), &list); err != nil || list == nil || len(list) != 0 {
 		t.Fatalf("expected empty list: %s (error: %v)", empty.Body.String(), err)
 	}
 
@@ -199,8 +200,8 @@ func TestLinksIntegration(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		automatic := responseLink(t, apiRequest(t, router, http.MethodPost, "/api/links",
 			`{"original_url":"https://example.com/auto"}`, http.StatusCreated))
-		if _, err := uuid.Parse(automatic.ShortName); err != nil {
-			t.Fatalf("expected generated UUID, got %q", automatic.ShortName)
+		if !shortNameTokenPattern.MatchString(automatic.ShortName) {
+			t.Fatalf("expected an 8-character URL-safe generated name, got %q", automatic.ShortName)
 		}
 		if automatic.ShortURL != "http://localhost:8080/r/"+automatic.ShortName {
 			t.Fatalf("inconsistent generated link: %+v", automatic)
@@ -209,7 +210,7 @@ func TestLinksIntegration(t *testing.T) {
 
 	duplicate := responseLink(t, apiRequest(t, router, http.MethodPost, "/api/links",
 		`{"original_url":"https://example.com/duplicate","short_name":"test-link"}`, http.StatusCreated))
-	if duplicate.ID == created.ID || duplicate.ShortName == created.ShortName || !strings.HasPrefix(duplicate.ShortName, "test-link") || duplicate.ShortURL != "http://localhost:8080/r/"+duplicate.ShortName {
+	if duplicate.ID == created.ID || duplicate.ShortName == created.ShortName || !strings.HasPrefix(duplicate.ShortName, "test-link-") || !shortNameTokenPattern.MatchString(strings.TrimPrefix(duplicate.ShortName, "test-link-")) || duplicate.ShortURL != "http://localhost:8080/r/"+duplicate.ShortName {
 		t.Fatalf("name collision not resolved: %+v", duplicate)
 	}
 
@@ -217,12 +218,12 @@ func TestLinksIntegration(t *testing.T) {
 	if err := json.Unmarshal(all.Body.Bytes(), &list); err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Links) != 4 || list.Links[0] != created {
-		t.Fatalf("unexpected list: %+v", list.Links)
+	if len(list) != 4 || list[0] != created {
+		t.Fatalf("unexpected list: %+v", list)
 	}
-	for i := 1; i < len(list.Links); i++ {
-		if list.Links[i-1].ID >= list.Links[i].ID {
-			t.Fatalf("list not ordered by ID: %+v", list.Links)
+	for i := 1; i < len(list); i++ {
+		if list[i-1].ID >= list[i].ID {
+			t.Fatalf("list not ordered by ID: %+v", list)
 		}
 	}
 	for _, tc := range []struct {
@@ -235,19 +236,17 @@ func TestLinksIntegration(t *testing.T) {
 	} {
 		t.Run("pagination/"+tc.name, func(t *testing.T) {
 			response := apiRequest(t, router, http.MethodGet, "/api/links?range="+tc.query, "", http.StatusOK)
-			var page struct {
-				Links []links.Link `json:"links"`
-			}
+			var page []links.Link
 			if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
 				t.Fatal(err)
 			}
-			want := list.Links[tc.start:tc.end]
-			if len(page.Links) != len(want) {
-				t.Fatalf("page length = %d, want %d", len(page.Links), len(want))
+			want := list[tc.start:tc.end]
+			if len(page) != len(want) {
+				t.Fatalf("page length = %d, want %d", len(page), len(want))
 			}
 			for i := range want {
-				if page.Links[i] != want[i] {
-					t.Errorf("page[%d] = %+v, want %+v", i, page.Links[i], want[i])
+				if page[i] != want[i] {
+					t.Errorf("page[%d] = %+v, want %+v", i, page[i], want[i])
 				}
 			}
 		})

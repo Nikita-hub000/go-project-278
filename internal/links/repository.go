@@ -40,17 +40,17 @@ func GetLinkByShortURL(ctx context.Context, db *sql.DB, shortURL string) (*Link,
 	return &Link{ID: link.ID, ShortURL: link.ShortUrl, ShortName: link.ShortName, OriginalURL: link.OriginalUrl}, nil
 }
 
-func GetAllLinksHandler(ctx context.Context, db *sql.DB, pagination string) ([]Link, error) {
+func GetAllLinksHandler(ctx context.Context, db *sql.DB, pagination string, sort string, _ string) ([]Link, error) {
 	q := sqlc.New(db)
 
-	params := sqlc.GetAllLinksParams{Limit: 100, Offset: 0}
+	params := sqlc.GetAllLinksParams{PageLimit: 100, PageOffset: 0, SortRule: orderByQuery(sort)}
 	if pagination != "" {
 		parsed, err := parseQueryPaginationToInt(pagination)
 		if err != nil {
 			return nil, err
 		}
-		params.Limit = parsed.Limit
-		params.Offset = parsed.Offset
+		params.PageLimit = parsed.Limit
+		params.PageOffset = parsed.Offset
 	}
 
 	rows, err := q.GetAllLinks(ctx, params)
@@ -87,7 +87,7 @@ func CreateLink(ctx context.Context, db *sql.DB, link *Link) (*Link, error) {
 
 func UpdateLinkHandler(ctx context.Context, db *sql.DB, params sqlc.UpdateLinkParams) (*Link, error) {
 	q := sqlc.New(db)
-	link, err := q.UpdateLink(ctx, sqlc.UpdateLinkParams{ID: params.ID, ShortName: params.ShortName, OriginalUrl: params.OriginalUrl})
+	link, err := q.UpdateLink(ctx, sqlc.UpdateLinkParams{ID: params.ID, ShortName: params.ShortName, OriginalUrl: params.OriginalUrl, ShortUrl: params.ShortUrl})
 
 	if err != nil {
 		return nil, err

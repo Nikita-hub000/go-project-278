@@ -33,14 +33,16 @@ func PostLink(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, gin.H{"link": link})
+		c.JSON(http.StatusCreated, link)
 	}
 }
 
 func GetAllLinks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pagination := c.Query("range")
-		links, err := GetAllLinksHandler(c.Request.Context(), db, pagination)
+		filter := c.Query("filter")
+		sort := c.Query("sort")
+		links, err := GetAllLinksHandler(c.Request.Context(), db, pagination, sort, filter)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve links"})
 			return
@@ -48,7 +50,10 @@ func GetAllLinks(db *sql.DB) gin.HandlerFunc {
 		if pagination != "" {
 			c.Header("Content-Range", fmt.Sprintf("links %s/%d", pagination, len(links)))
 		}
-		c.JSON(http.StatusOK, gin.H{"links": links})
+		if links == nil {
+			links = []Link{}
+		}
+		c.JSON(http.StatusOK, links)
 	}
 }
 
@@ -66,7 +71,7 @@ func GetLinkByID(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"link": link})
+		c.JSON(http.StatusOK, link)
 	}
 }
 
@@ -80,6 +85,12 @@ func UpdateLink(db *sql.DB) gin.HandlerFunc {
 		}
 		request := UpdateLinkRequest{}
 
+		data, err := GenerateShortUrl(c.Request.Context(), db, request.ShortName)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		if err := c.ShouldBindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -87,8 +98,9 @@ func UpdateLink(db *sql.DB) gin.HandlerFunc {
 
 		link, err := UpdateLinkHandler(c.Request.Context(), db, sqlc.UpdateLinkParams{
 			OriginalUrl: request.OriginalURL,
-			ShortName:   request.ShortName,
+			ShortName:   data.ShortName,
 			ID:          id,
+			ShortUrl:    data.ShortURL,
 		})
 
 		if err != nil {
@@ -96,7 +108,7 @@ func UpdateLink(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"link": link})
+		c.JSON(http.StatusOK, link)
 	}
 }
 

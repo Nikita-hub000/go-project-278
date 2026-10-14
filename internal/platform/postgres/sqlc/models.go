@@ -15,3 +15,12 @@ type Link struct {
 	ShortUrl    string
 	CreatedAt   time.Time
 }
+
+type Visit struct {
+	ID        int64
+	LinkID    int64
+	Ip        string
+	UserAgent string
+	Status    int32
+	CreatedAt time.Time
+}
