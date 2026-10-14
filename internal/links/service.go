@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
-	"encoding/json/v2"
+	"encoding/json"
 	"errors"
 	"links/internal/config"
 	"links/internal/platform/postgres/sqlc"

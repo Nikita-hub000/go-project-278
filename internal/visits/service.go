@@ -1,7 +1,7 @@
 package visits
 
 import (
-	"encoding/json/v2"
+	"encoding/json"
 	"errors"
 	"strings"
 )
