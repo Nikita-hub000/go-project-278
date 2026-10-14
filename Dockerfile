@@ -1,4 +1,13 @@
-# Build backend
+# 1) Build frontend
+FROM node:24-alpine AS frontend-builder
+WORKDIR /build/frontend
+
+COPY package*.json ./
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
+
+# 2) Build backend
 FROM golang:1.27.2-alpine AS backend-builder
 RUN apk add --no-cache git
 WORKDIR /build/code
@@ -24,18 +33,20 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # 3) Runtime
 FROM alpine:3.22
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache bash ca-certificates caddy tzdata
 
 WORKDIR /app
 
 COPY --from=backend-builder /build/app /app/bin/app
-
 COPY --from=backend-builder /build/code/migrations /app/db/migrations
 COPY --from=backend-builder /build/goose /usr/local/bin/goose
+COPY --from=frontend-builder /build/frontend/node_modules/@hexlet/project-url-shortener-frontend/dist /app/public
 
 COPY bin/run.sh /app/bin/run.sh
 RUN chmod +x /app/bin/run.sh
 
-EXPOSE 8080
+COPY Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 80
 
 CMD ["/app/bin/run.sh"]

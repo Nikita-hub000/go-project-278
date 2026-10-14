@@ -24,7 +24,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
-      - "8080:8080"
+      - "8080:80"
     depends_on:
       db:
         condition: service_healthy
