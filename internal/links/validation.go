@@ -45,6 +45,10 @@ func bindLinkRequest(c *gin.Context, payload any) bool {
 }
 
 func writeLinkError(c *gin.Context, err error, message string) {
+	if errors.Is(err, ErrLinkNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": ErrLinkNotFound.Error()})
+		return
+	}
 	if errors.Is(err, ErrShortNameInUse) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"errors": gin.H{"short_name": ErrShortNameInUse.Error()},

@@ -13,7 +13,7 @@ func GetLinkByIDHandler(ctx context.Context, db *sql.DB, id int64) (*Link, error
 	row, err := q.GetLinkByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, ErrLinkNotFound
 		}
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func DeleteLinkByIDHandler(ctx context.Context, db *sql.DB, id int64) error {
 		return err
 	}
 	if affected == 0 {
-		return errors.New("no such link")
+		return ErrLinkNotFound
 	}
 
 	return nil

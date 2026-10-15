@@ -102,6 +102,13 @@ func TestLinksIntegration(t *testing.T) {
 	}
 
 	apiRequest(t, router, http.MethodDelete, path, "", http.StatusNoContent)
+	for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
+		response := apiRequest(t, router, method, path,
+			`{"original_url":"https://example.com/deleted","short_name":"deleted"}`, http.StatusNotFound)
+		if response.Body.String() != `{"error":"link not found"}` {
+			t.Fatalf("unexpected response for deleted link: %s", response.Body.String())
+		}
+	}
 	var count int
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -110,5 +117,19 @@ func TestLinksIntegration(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatal("deleted link still exists in database")
+	}
+}
+
+func TestMissingLinkIntegration(t *testing.T) {
+	db := integrationDatabase(t)
+	router := setupRouter(db)
+	for _, method := range []string{http.MethodGet, http.MethodPut, http.MethodDelete} {
+		t.Run(method, func(t *testing.T) {
+			response := apiRequest(t, router, method, "/api/links/999999",
+				`{"original_url":"https://example.com","short_name":"missing"}`, http.StatusNotFound)
+			if response.Body.String() != `{"error":"link not found"}` {
+				t.Fatalf("unexpected response: %s", response.Body.String())
+			}
+		})
 	}
 }

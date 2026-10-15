@@ -1,6 +1,7 @@
 package links
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"testing"
@@ -9,6 +10,9 @@ import (
 )
 
 func TestLinkWriteError(t *testing.T) {
+	if !errors.Is(linkWriteError(fmt.Errorf("update: %w", sql.ErrNoRows)), ErrLinkNotFound) {
+		t.Error("missing update row was not mapped to ErrLinkNotFound")
+	}
 	for _, constraint := range []string{"links_short_name_key", "links_short_url_key"} {
 		err := fmt.Errorf("insert: %w", &pgconn.PgError{Code: "23505", ConstraintName: constraint})
 		if !errors.Is(linkWriteError(err), ErrShortNameInUse) {

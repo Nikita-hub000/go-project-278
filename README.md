@@ -55,7 +55,7 @@ npm start
 ```bash
 go run ./cmd/api
 curl http://localhost:8080/ping
-# {"message":"pong"}
+# pong
 ```
 
 `make start` запускает API, `make build` собирает его в `bin/api`.

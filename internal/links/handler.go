@@ -56,7 +56,7 @@ func GetLinkByID(db *sql.DB) gin.HandlerFunc {
 
 		link, err := GetLinkByIDHandler(c.Request.Context(), db, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			writeLinkError(c, err, "failed to retrieve link")
 			return
 		}
 
@@ -99,7 +99,7 @@ func DeleteLink(db *sql.DB) gin.HandlerFunc {
 
 		err = DeleteLinkByIDHandler(c.Request.Context(), db, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			writeLinkError(c, err, "failed to delete link")
 			return
 		}
 		c.JSON(http.StatusNoContent, gin.H{})
