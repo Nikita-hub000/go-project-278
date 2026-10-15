@@ -19,7 +19,7 @@ import (
 func visitsDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	db := integrationDatabase(t)
-	migration, err := os.ReadFile("../../migrations/002_create_visits.sql")
+	migration, err := os.ReadFile("../../db/migrations/002_create_visits.sql")
 	if err != nil {
 		t.Fatal(err)
 	}

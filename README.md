@@ -94,7 +94,7 @@ docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SEL
 Данные сохраняются в томе `postgres_data`. Команда `docker compose down`
 останавливает контейнеры с сохранением данных; добавление `-v` удаляет том.
 API запускается после успешной проверки готовности PostgreSQL.
-Скрипт `bin/run.sh` применяет SQL-миграции из `migrations` перед запуском API;
+Скрипт `bin/run.sh` применяет SQL-миграции из `db/migrations` перед запуском API;
 если SQL-файлов нет, этот шаг пропускается. После добавления миграций пересоберите образ.
 Go API создаёт пул `*sql.DB` через `sql.Open("pgx", DATABASE_URL)`
 (драйвер `pgx/v5/stdlib`) и проверяет подключение SQL-запросом при запуске
@@ -102,7 +102,7 @@ Go API создаёт пул `*sql.DB` через `sql.Open("pgx", DATABASE_URL)
 При запуске Go на компьютере используйте в URL `localhost:5432` вместо `db:5432`;
 `go run` не загружает `.env` автоматически.
 
-`migrations/001_create_links.sql` создаёт таблицу `links` с уникальным `short_name`
+`db/migrations/001_create_links.sql` создаёт таблицу `links` с уникальным `short_name`
 и автоматически заполняемым `created_at`. `short_url` в базе не хранится.
 Настройки sqlc находятся в `sqlc.yaml`; генерация кода выполняется командой
 `make generate` (sqlc v1.31.1). Исходные SQL-запросы находятся в
@@ -118,7 +118,7 @@ CRUD ссылок ещё не реализован.
 - `internal/order` — каркас обработчиков, сервиса, репозитория и моделей заказов.
 - `internal/middleware` — логирование запросов и место для авторизации.
 - `internal/platform/postgres` — подключение PostgreSQL и код sqlc.
-- `migrations` — миграции goose, включая создание таблицы ссылок.
+- `db/migrations` — миграции goose, включая создание таблицы ссылок.
 
 Пакеты пользователей, заказов и авторизация пока представлены заготовками.
 Рабочий маршрут API — `GET /ping`.

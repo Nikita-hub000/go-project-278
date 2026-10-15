@@ -17,7 +17,7 @@ func TestDeleteLinkCascadeIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	for _, name := range []string{"002_create_visits.sql", "003_cascade_delete_link_visits.sql"} {
-		migration, err := os.ReadFile("../../migrations/" + name)
+		migration, err := os.ReadFile("../../db/migrations/" + name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -69,7 +69,7 @@ func TestDeleteLinkCascadeIntegration(t *testing.T) {
 		t.Fatalf("unrelated link was affected: %v", err)
 	}
 	// Verify that the Down migration restores the original foreign key behavior.
-	migration, err := os.ReadFile("../../migrations/003_cascade_delete_link_visits.sql")
+	migration, err := os.ReadFile("../../db/migrations/003_cascade_delete_link_visits.sql")
 	if err != nil {
 		t.Fatal(err)
 	}

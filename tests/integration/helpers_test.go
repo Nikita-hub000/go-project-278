@@ -88,7 +88,7 @@ func integrationDatabase(t *testing.T) *sql.DB {
 	db := stdlib.OpenDB(*cfg)
 	t.Cleanup(func() { _ = db.Close() })
 	// Apply the project's current schema, never the Down section.
-	migration, err := os.ReadFile("../../migrations/001_create_links.sql")
+	migration, err := os.ReadFile("../../db/migrations/001_create_links.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
