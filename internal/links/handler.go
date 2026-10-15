@@ -3,6 +3,7 @@ package links
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -33,6 +34,7 @@ func GetAllLinks(db *sql.DB) gin.HandlerFunc {
 		sort := c.Query("sort")
 		links, err := GetAllLinksHandler(c.Request.Context(), db, pagination, sort, filter)
 		if err != nil {
+			log.Printf("retrieve links: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve links"})
 			return
 		}

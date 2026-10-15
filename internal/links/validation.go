@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -55,5 +56,6 @@ func writeLinkError(c *gin.Context, err error, message string) {
 		})
 		return
 	}
+	log.Printf("%s: %v", message, err)
 	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 }
