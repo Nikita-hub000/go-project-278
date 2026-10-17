@@ -2,7 +2,7 @@ package visits
 
 import (
 	"encoding/json"
-	"errors"
+	"links/internal/pagination"
 	"strings"
 )
 
@@ -42,20 +42,6 @@ func orderByQuery(rule string) string {
 	return val
 }
 
-func parseQueryPaginationToInt(queryStr string) (*GetAllVisitsPagination, error) {
-	var values []int32
-	if err := json.Unmarshal([]byte(queryStr), &values); err != nil {
-		return nil, err
-	}
-	if len(values) != 2 {
-		return nil, errors.New("two nums expected")
-	}
-
-	offset := values[0]
-	limit := values[1] - values[0] + 1
-
-	if offset < 0 || values[1] < values[0] || limit <= 0 {
-		return nil, errors.New("invalid offset or limit")
-	}
-	return &GetAllVisitsPagination{Limit: values[1] - values[0] + 1, Offset: values[0]}, nil
+func parseQueryPaginationToInt(queryStr string) (*pagination.Page, error) {
+	return pagination.Parse(queryStr)
 }

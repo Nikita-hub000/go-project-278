@@ -10,8 +10,3 @@ type Visit struct {
 	Status    int32     `json:"status" db:"status" binding:"required"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
-
-type GetAllVisitsPagination struct {
-	Limit  int32
-	Offset int32
-}

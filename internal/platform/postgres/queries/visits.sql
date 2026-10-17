@@ -21,3 +21,6 @@ LIMIT sqlc.arg(page_limit) OFFSET sqlc.arg(page_offset);
 INSERT INTO visits(link_id, ip, status, user_agent)
 VALUES ($1, $2, $3, $4)
 RETURNING id, link_id, ip, status, user_agent, created_at;
+
+-- name: CountVisits :one
+SELECT count(*) FROM visits;

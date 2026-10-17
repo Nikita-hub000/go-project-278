@@ -51,6 +51,17 @@ func (q *Queries) AddVisit(ctx context.Context, arg AddVisitParams) (AddVisitRow
 	return i, err
 }
 
+const countVisits = `-- name: CountVisits :one
+SELECT count(*) FROM visits
+`
+
+func (q *Queries) CountVisits(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countVisits)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getAllVisits = `-- name: GetAllVisits :many
 SELECT id, link_id, ip, status, user_agent, created_at
 from visits

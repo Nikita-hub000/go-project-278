@@ -2,6 +2,7 @@ package visits_test
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -53,10 +54,15 @@ func TestDatabaseErrors(t *testing.T) {
 }
 
 func TestInvalidRangeDoesNotAccessDatabase(t *testing.T) {
-	for _, query := range []string{"invalid", "[0]", "[-1,4]", "[5,4]", "[0,2147483647]"} {
+	for _, query := range []string{"invalid", "[0]", "[-1,4]", "[5,4]", "[0,2147483647]", "[2147483648,2147483648]", "[0,9223372036854775808]", "[null,1]"} {
 		t.Run(query, func(t *testing.T) {
 			// No recovery middleware or DB: any accidental query fails the test.
-			assertVisitError(t, visitsRouter(nil), "/api/link_visits?range="+url.QueryEscape(query), `{"error":"failed to retrieve visits"}`)
+			response := httptest.NewRecorder()
+			visitsRouter(nil).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/link_visits?range="+url.QueryEscape(query), nil))
+			var body map[string]string
+			if response.Code != http.StatusBadRequest || json.Unmarshal(response.Body.Bytes(), &body) != nil || body["error"] == "" {
+				t.Fatalf("status %d, body %s", response.Code, response.Body.String())
+			}
 		})
 	}
 }

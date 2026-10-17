@@ -52,7 +52,7 @@ func TestListSortingIntegration(t *testing.T) {
 		{`invalid`, []int64{1, 2, 3}},
 	} {
 		t.Run("links/"+tc.sort, func(t *testing.T) {
-			rows, err := links.GetAllLinksHandler(ctx, db, "", tc.sort, "invalid filter is ignored")
+			rows, _, err := links.GetAllLinksHandler(ctx, db, "", tc.sort, "invalid filter is ignored")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,7 +69,7 @@ func TestListSortingIntegration(t *testing.T) {
 		for _, direction := range []string{"ASC", "DESC"} {
 			t.Run("visits/"+field+"/"+direction, func(t *testing.T) {
 				sort := `["` + field + `","` + direction + `"]`
-				rows, err := visits.GetAllVisitsHandler(ctx, db, "", sort, "{}")
+				rows, _, err := visits.GetAllVisitsHandler(ctx, db, "", sort, "{}")
 				if err != nil {
 					t.Fatal(err)
 				}

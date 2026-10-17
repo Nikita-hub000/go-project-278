@@ -1,9 +1,11 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -169,20 +171,24 @@ func TestVisitCreationErrorsIntegration(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `ALTER TABLE visits ADD CONSTRAINT reject_test_agent CHECK (user_agent <> 'reject-visit')`); err != nil {
 		t.Fatal(err)
 	}
-	for _, tc := range []struct{ name, agent string }{
-		{"missing-code", "normal-agent"},
-		{link.ShortName, "reject-visit"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			response := redirectRequest(t, router, tc.name, "203.0.113.7", tc.agent, http.StatusInternalServerError)
-			if got := response.Header().Get("Location"); got != "" {
-				t.Errorf("error redirected to %q", got)
-			}
-			if response.Body.String() != `{"error":"failed to create visit"}` {
-				t.Fatalf("unexpected error body: %s", response.Body.String())
-			}
-		})
+	missing := redirectRequest(t, router, "missing-code", "203.0.113.7", "normal-agent", http.StatusNotFound)
+	if missing.Header().Get("Location") != "" || missing.Body.String() != `{"error":"link not found"}` {
+		t.Fatalf("unexpected missing link response: %s", missing.Body.String())
 	}
+	var diagnostics bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&diagnostics, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+	response := redirectRequest(t, router, link.ShortName, "203.0.113.7", "reject-visit", http.StatusFound)
+	if response.Header().Get("Location") != link.OriginalUrl || response.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("analytics failure prevented redirect: %v", response.Header())
+	}
+	for _, field := range []string{`"operation":"create_visit"`, `"code":"reject-insert"`, `"error":`, "reject_test_agent"} {
+		if !strings.Contains(diagnostics.String(), field) {
+			t.Errorf("missing diagnostic %s: %s", field, diagnostics.String())
+		}
+	}
+
 	var count int
 	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM visits").Scan(&count); err != nil {
 		t.Fatal(err)

@@ -7,14 +7,14 @@ import (
 	"links/internal/platform/postgres/sqlc"
 )
 
-func GetAllVisitsHandler(ctx context.Context, db *sql.DB, pagination string, sort string, _ string) ([]Visit, error) {
+func GetAllVisitsHandler(ctx context.Context, db *sql.DB, pagination string, sort string, _ string) ([]Visit, int64, error) {
 	q := sqlc.New(db)
 
 	params := sqlc.GetAllVisitsParams{PageLimit: 100, PageOffset: 0, SortRule: orderByQuery(sort)}
 	if pagination != "" {
 		parsed, err := parseQueryPaginationToInt(pagination)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		params.PageLimit = parsed.Limit
 		params.PageOffset = parsed.Offset
@@ -24,17 +24,23 @@ func GetAllVisitsHandler(ctx context.Context, db *sql.DB, pagination string, sor
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, 0, nil
 		}
-		return nil, err
+		return nil, 0, err
 	}
 	visits := make([]Visit, 0, len(rows))
 	for _, row := range rows {
 		visits = append(visits, Visit{ID: row.ID, LinkID: row.LinkID, IP: row.Ip, Status: row.Status, UserAgent: row.UserAgent, CreatedAt: row.CreatedAt})
 	}
-	return visits, nil
+	total, err := q.CountVisits(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	return visits, total, nil
 }
 
+// CreateVisit returns the target once the link is found, even if recording fails.
+// An empty target with an error means lookup failed and no redirect is possible.
 func CreateVisit(ctx context.Context, db *sql.DB, code string, ip string, userAgent string) (string, error) {
 	q := sqlc.New(db)
 
@@ -47,7 +53,7 @@ func CreateVisit(ctx context.Context, db *sql.DB, code string, ip string, userAg
 	_, err = q.AddVisit(ctx, sqlc.AddVisitParams{LinkID: link.ID, UserAgent: userAgent, Ip: ip, Status: 302})
 
 	if err != nil {
-		return "", err
+		return link.OriginalUrl, err
 	}
 
 	return link.OriginalUrl, nil

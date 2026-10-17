@@ -34,6 +34,17 @@ func (q *Queries) AddLink(ctx context.Context, arg AddLinkParams) (Link, error) 
 	return i, err
 }
 
+const countLinks = `-- name: CountLinks :one
+SELECT count(*) FROM links
+`
+
+func (q *Queries) CountLinks(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLinks)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteLink = `-- name: DeleteLink :execrows
 DELETE
 FROM links

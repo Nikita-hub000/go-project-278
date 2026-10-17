@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"links/internal/config"
+	"links/internal/pagination"
 	"links/internal/platform/postgres/sqlc"
 	"strings"
 )
@@ -87,22 +88,8 @@ func generateRandomShortName() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-func parseQueryPaginationToInt(queryStr string) (*GetAllLinksPagination, error) {
-	var values []int32
-	if err := json.Unmarshal([]byte(queryStr), &values); err != nil {
-		return nil, err
-	}
-	if len(values) != 2 {
-		return nil, errors.New("two nums expected")
-	}
-
-	offset := values[0]
-	limit := values[1] - values[0] + 1
-
-	if offset < 0 || limit < 0 {
-		return nil, errors.New("invalid offset or limit")
-	}
-	return &GetAllLinksPagination{Limit: values[1] - values[0] + 1, Offset: values[0]}, nil
+func parseQueryPaginationToInt(queryStr string) (*pagination.Page, error) {
+	return pagination.Parse(queryStr)
 }
 
 func orderByQuery(rule string) string {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -53,6 +54,18 @@ func TestRequestValidation(t *testing.T) {
 			{"invalid URL", `{"original_url":"not-a-url"}`, []string{"original_url"}},
 			{"short name too short", `{"original_url":"https://example.com","short_name":"ab"}`, []string{"short_name"}},
 			{"short name too long", `{"original_url":"https://example.com","short_name":"` + strings.Repeat("a", 33) + `"}`, []string{"short_name"}},
+			{"slash in name", `{"original_url":"https://example.com","short_name":"abc/def"}`, []string{"short_name"}},
+			{"encoded slash", `{"original_url":"https://example.com","short_name":"abc%2Fdef"}`, []string{"short_name"}},
+			{"query in name", `{"original_url":"https://example.com","short_name":"abc?def"}`, []string{"short_name"}},
+			{"fragment in name", `{"original_url":"https://example.com","short_name":"abc#def"}`, []string{"short_name"}},
+			{"space in name", `{"original_url":"https://example.com","short_name":"abc def"}`, []string{"short_name"}},
+			{"ftp URL", `{"original_url":"ftp://example.com"}`, []string{"original_url"}},
+			{"javascript URL", `{"original_url":"javascript:alert(1)"}`, []string{"original_url"}},
+			{"relative URL", `{"original_url":"/example"}`, []string{"original_url"}},
+			{"missing host", `{"original_url":"https:///example"}`, []string{"original_url"}},
+			{"invalid host", `{"original_url":"https://example..com"}`, []string{"original_url"}},
+			{"invalid IPv6 host", `{"original_url":"https://[example.com]"}`, []string{"original_url"}},
+			{"invalid port", `{"original_url":"https://example.com:99999"}`, []string{"original_url"}},
 			{"multiple invalid fields", `{"original_url":"bad","short_name":"ab"}`, []string{"original_url", "short_name"}},
 		} {
 			t.Run(method+"/"+tc.name, func(t *testing.T) {
@@ -98,7 +111,7 @@ func TestValidRequestsReachDatabase(t *testing.T) {
 		if method == http.MethodPut {
 			path += "/1"
 		}
-		for _, name := range []string{"", "abc", strings.Repeat("a", 32)} {
+		for _, name := range []string{"", "abc", "abc_DEF-123", strings.Repeat("a", 32)} {
 			t.Run(method+"/name="+name, func(t *testing.T) {
 				body := `{"original_url":"https://example.com","short_name":"` + name + `"}`
 				response := request(t, router, method, path, body, http.StatusInternalServerError)
@@ -122,5 +135,17 @@ func TestInvalidLinkID(t *testing.T) {
 				request(t, linkRouter(nil), method, "/api/links/"+id, "", http.StatusBadRequest)
 			})
 		}
+	}
+}
+
+func TestInvalidRangeDoesNotAccessDatabase(t *testing.T) {
+	for _, query := range []string{"oops", "[0]", "[-1,4]", "[5,4]", "[5,1]", "[0,2147483647]", "[2147483648,2147483648]", "[0,9223372036854775808]", "[null,1]"} {
+		t.Run(query, func(t *testing.T) {
+			response := request(t, linkRouter(nil), http.MethodGet, "/api/links?range="+url.QueryEscape(query), "", http.StatusBadRequest)
+			var body map[string]string
+			if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body["error"] == "" {
+				t.Fatalf("invalid error response: %s", response.Body.String())
+			}
+		})
 	}
 }

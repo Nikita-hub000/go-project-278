@@ -44,3 +44,6 @@ RETURNING id, original_url, short_name, short_url, created_at;
 DELETE
 FROM links
 WHERE id = $1;
+
+-- name: CountLinks :one
+SELECT count(*) FROM links;

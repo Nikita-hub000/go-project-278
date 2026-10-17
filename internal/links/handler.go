@@ -2,7 +2,8 @@ package links
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
+	"links/internal/pagination"
 	"log"
 	"net/http"
 	"strconv"
@@ -29,18 +30,25 @@ func PostLink(db *sql.DB) gin.HandlerFunc {
 
 func GetAllLinks(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		pagination := c.Query("range")
+		rangeQuery := c.Query("range")
 		filter := c.Query("filter")
 		sort := c.Query("sort")
-		links, err := GetAllLinksHandler(c.Request.Context(), db, pagination, sort, filter)
+		links, total, err := GetAllLinksHandler(c.Request.Context(), db, rangeQuery, sort, filter)
 		if err != nil {
+			if errors.Is(err, pagination.ErrInvalidRange) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			log.Printf("retrieve links: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve links"})
 			return
 		}
-		if pagination != "" {
-			c.Header("Content-Range", fmt.Sprintf("links %s/%d", pagination, len(links)))
+		var offset int32
+		if rangeQuery != "" {
+			page, _ := pagination.Parse(rangeQuery)
+			offset = page.Offset
 		}
+		c.Header("Content-Range", pagination.ContentRange("links", offset, len(links), total))
 		if links == nil {
 			links = []Link{}
 		}
